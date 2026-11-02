@@ -68,17 +68,29 @@ const SOL={'Variables & console.log':`const name = "Ana";\nconsole.log("Hello, "
 Object.values(D).forEach(s=>s.ls.forEach(l=>{if(!l.sol)l.sol=SOL[l.t]||''}));
 const QZ={js:[['Which keyword declares a value that cannot be reassigned?',['let','const','var'],1],['What does [1, 2, 3].map(n => n * 2) return?',['[2, 4, 6]','6','[1, 2, 3]'],0],['What does await do inside an async function?',['Pauses until a promise settles','Deletes the promise','Runs the code twice'],0]],py:[['What marks a block of code in Python?',['Curly braces','Indentation','Semicolons'],1],['Which keyword sends a value back from a function?',['return','print','break'],0],['What does [n for n in range(3)] give?',['[0, 1, 2]','[1, 2, 3]','3'],0]],html:[['Which tag is the main heading?',['<head>','<h1>','<title>'],1],['Which CSS property adds space inside an element border?',['margin','padding','gap'],1],['Which declaration places children in a row?',['display: flex','display: none','float: left'],0]],sql:[['Which clause filters rows?',['ORDER BY','WHERE','GROUP BY'],1],['What does JOIN do?',['Combines rows from two tables','Removes duplicates','Sorts rows'],0],['Which function counts rows?',['SUM()','COUNT()','MAX()'],1]]};
 function quiz(){const qs=QZ[S];let sc=0,a=0;$('main').innerHTML='<div class="badge">'+D[S].name+' · Quiz</div><h2>Quick quiz</h2><div id="qs"></div><p id="sc"><b></b></p>';
- qs.forEach(([q,o,c],qi)=>{const d=document.createElement('div'),t=document.createElement('p'),r=document.createElement('div');d.className='task';r.className='row';t.textContent=(qi+1)+'. '+q;d.append(t,r);o.forEach((x,oi)=>{const b=document.createElement('button');b.textContent=x;b.onclick=()=>{if(d.dataset.d)return;d.dataset.d=1;a++;const good=oi===c;if(good)sc++;b.style.borderColor=good?'var(--ok)':'var(--bad)';r.children[c].style.borderColor='var(--ok)';const f=document.createElement('p');f.className=good?'ok':'bad';f.textContent=good?'Correct!':'Not quite. The right answer is highlighted.';d.append(f);if(a===qs.length)$('sc').firstChild.textContent='Score: '+sc+' / '+qs.length};r.append(b)});$('qs').append(d)})}
-function sol(){const [c,w]=D[S].ls[I].sol.split('||'),g=$('guide'),pr=document.createElement('pre'),p=document.createElement('p');pr.textContent=c;p.textContent='Why it works: '+w;g.append(pr,p)}
+ qs.forEach(([q,o,c],qi)=>{const d=document.createElement('div'),t=document.createElement('p'),r=document.createElement('div');d.className='task';r.className='row';t.textContent=(qi+1)+'. '+q;d.append(t,r);o.forEach((x,oi)=>{const b=document.createElement('button');b.textContent=x;b.onclick=()=>{if(d.dataset.d)return;d.dataset.d=1;a++;const good=oi===c;if(good)sc++;b.style.borderColor=good?'var(--ok)':'var(--bad)';r.children[c].style.borderColor='var(--ok)';const f=document.createElement('p');f.className=good?'ok':'bad';f.textContent=good?'Correct!':'Not quite. The right answer is highlighted.';d.append(f);if(a===qs.length){$('sc').firstChild.textContent='Score: '+sc+' / '+qs.length;ST.quiz[S]=sc;save2()}};r.append(b)});$('qs').append(d)})}
+function sol(){ST.sol[S+I]=1;save2();const [c,w]=D[S].ls[I].sol.split('||'),g=$('guide'),pr=document.createElement('pre'),p=document.createElement('p');pr.textContent=c;p.textContent='Why it works: '+w;g.append(pr,p)}
 let S='js',I=0,H=0;const $=id=>document.getElementById(id);
 let done={};try{done=JSON.parse(localStorage.getItem('lp-done2')||'{}')}catch(e){}
 const save=()=>{try{localStorage.setItem('lp-done2',JSON.stringify(done))}catch(e){}};
+let ST={seen:{},fail:{},sol:{},quiz:{}};try{ST=Object.assign(ST,JSON.parse(localStorage.getItem('lp-state')||'{}'))}catch(e){}
+const save2=()=>{try{localStorage.setItem('lp-state',JSON.stringify(ST))}catch(e){}};
+function prog(){let tl=0,td=0,ts=0,rev=[],nx=[],c='';
+ Object.keys(D).forEach(k=>{const ls=D[k].ls,d=ls.filter((_,i)=>done[k+i]).length,s=ls.filter((_,i)=>ST.seen[k+i]).length;tl+=ls.length;td+=d;ts+=s;
+  c+=`<div class="task"><b>${D[k].name}</b> <span class="badge">${d}/${ls.length} completed · ${s}/${ls.length} started${ST.quiz[k]!=null?' · quiz '+ST.quiz[k]+'/3':''}</span><div class="bar" style="margin:6px 0 0"><i style="width:${d/ls.length*100}%"></i></div></div>`;
+  const f=ls.findIndex((_,i)=>!done[k+i]);if(f>-1)nx.push([k,f]);
+  ls.forEach((l,i)=>{const q=k+i;if(!done[q]&&(ST.fail[q]||ST.sol[q]))rev.push([k,i,l.t,ST.fail[q]||0,ST.sol[q]])})});
+ const pc=n=>Math.round(n/tl*100),b=(k,i,t,x)=>`<button onclick="S='${k}';I=${i};H=0;render()">${D[k].name}: ${t}${x||''}</button>`;
+ $('main').innerHTML=`<h2>My progress</h2><p class="badge">Saved automatically in this browser.</p><div class="task"><b>${pc(td)}% completed</b> · ${pc(ts)}% started · ${td} of ${tl} lessons<div class="bar" style="margin:6px 0 0"><i style="width:${pc(td)}%"></i></div></div>${c}<h3>Needs more practice</h3><div class="row">${rev.length?rev.map(r=>b(r[0],r[1],r[2],' ('+(r[3]?r[3]+' tries':'')+(r[3]&&r[4]?', ':'')+(r[4]?'solution viewed':'')+')')).join(''):'<span class="badge">Nothing yet. Lessons you try but have not passed will appear here.</span>'}</div><h3>Up next</h3><div class="row">${nx.length?nx.map(n=>b(n[0],n[1],D[n[0]].ls[n[1]].t)).join(''):'<span class="ok">All lessons completed!</span>'}</div><h3>Back up your progress</h3><p class="badge">Copy this code to keep it, or paste a saved code and press Load.</p><textarea id="pc" style="min-height:70px"></textarea><div class="row"><button onclick="loadCode()">Load code</button><button onclick="resetAll(this)">Reset progress</button></div><p id="pcm" class="bad"></p>`;
+ $('pc').value=btoa(JSON.stringify({done,ST}))}
+function loadCode(){try{const o=JSON.parse(atob($('pc').value.trim()));done=o.done||{};ST=Object.assign({seen:{},fail:{},sol:{},quiz:{}},o.ST);save();save2();render()}catch(e){$('pcm').textContent='That code is not valid.'}}
+function resetAll(b){if(b.dataset.s){done={};ST={seen:{},fail:{},sol:{},quiz:{}};save();save2();render()}else{b.dataset.s=1;b.textContent='Click again to confirm'}}
 function render(){
  $('tabs').innerHTML=Object.keys(D).map(k=>`<button class="${k===S?'on':''}" onclick="S='${k}';I=0;H=0;render()">${D[k].name}</button>`).join('');
  const ls=D[S].ls,n=ls.filter((_,i)=>done[S+i]).length;let lv='',h='';
  ls.forEach((l,i)=>{if(l.lv!==lv){lv=l.lv;h+=`<div class="lv">${lv}</div>`}h+=`<button class="${i===I?'on':''}" onclick="I=${i};H=0;render()">${done[S+i]?'✓ ':''}${l.t}</button>`});
- $('side').innerHTML=h+`<div class="lv">Test yourself</div><button class="${I==='q'?'on':''}" onclick="I='q';render()">★ Quick quiz</button><div class="bar"><i style="width:${n/ls.length*100}%"></i></div><div class="badge" style="margin:4px 6px">${n} of ${ls.length} done</div>`;
- if(I==='q')return quiz();const l=ls[I];
+ $('side').innerHTML=h+`<div class="lv">Test yourself</div><button class="${I==='p'?'on':''}" onclick="I='p';render()">📊 My progress</button><button class="${I==='q'?'on':''}" onclick="I='q';render()">★ Quick quiz</button><div class="bar"><i style="width:${n/ls.length*100}%"></i></div><div class="badge" style="margin:4px 6px">${n} of ${ls.length} done</div>`;
+ if(I==='q')return quiz();if(I==='p')return prog();const l=ls[I];ST.seen[S+I]=1;save2();
  $('main').innerHTML=`<div class="badge">${D[S].name} · ${l.lv}</div><h2>${l.t}</h2><p>${l.b}</p><pre>${l.ex}</pre>
  <div class="task"><b>Your task:</b> ${l.task}</div>
  <textarea id="code" spellcheck="false" aria-label="Code editor"></textarea>
@@ -100,7 +112,8 @@ async function go(){
   $('out').innerHTML='';var outText=o;
  }
  const pass=res.every(r=>r[0]);
- if(pass&&!done[S+I]){done[S+I]=1;save();const sb=$('side');}
+ if(pass&&!done[S+I]){done[S+I]=1;save()}
+ if(!pass){ST.fail[S+I]=(ST.fail[S+I]||0)+1;save2()}
  let h=extra+res.map(r=>`<div class="${r[0]?'ok':'bad'}">${r[0]?'✓':'✗'} ${r[1]}</div>`).join('');
  h+=pass?`<p class="ok"><b>Lesson complete!</b>${l.exp?' Expected result: <code></code>':''}</p>`:'<p class="bad">Not quite yet. Try “Guide me”.</p>';
  if(S==='html')h+='<iframe sandbox title="Preview"></iframe>';
