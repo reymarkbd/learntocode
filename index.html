@@ -16,8 +16,10 @@ h1{font-size:18px;margin:0}
 button{font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--sf);color:var(--tx);padding:7px 13px;border-radius:8px}
 button:hover{border-color:var(--ac)}
 button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
-.wrap{display:grid;grid-template-columns:240px 1fr;gap:18px;max-width:1100px;margin:0 auto;padding:18px}
-@media(max-width:760px){.wrap{grid-template-columns:1fr}}
+.wrap{display:grid;grid-template-columns:240px 1fr 320px;gap:18px;max-width:1440px;margin:0 auto;padding:18px}
+@media(max-width:1100px){.wrap{grid-template-columns:240px 1fr}#ai{grid-column:1/-1}}@media(max-width:760px){.wrap{grid-template-columns:1fr}}
+#ai{position:sticky;top:10px}#ai button{display:inline-block;width:auto;text-align:center;border:1px solid var(--bd);background:var(--sf);padding:6px 11px;font-size:14px}#ai textarea{min-height:56px;font-family:inherit;margin:8px 0 4px}
+#log{max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin:8px 0}.m{padding:8px 10px;border-radius:10px;background:var(--cd);white-space:pre-wrap;font-size:14px}.m.u{background:var(--ac);color:#fff;align-self:flex-end}
 aside{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px;align-self:start}
 .lv{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu);margin:12px 6px 4px}
 .lv:first-of-type{margin-top:2px}
@@ -38,8 +40,8 @@ code{background:var(--cd);padding:1px 5px;border-radius:4px}
 </style>
 </head>
 <body>
-<header><h1>Learn &amp; Practice</h1><div class="tabs" id="tabs"></div></header>
-<div class="wrap"><aside id="side"></aside><main id="main"></main></div>
+<header><h1>Learn &amp; Practice</h1><div class="tabs" id="tabs"></div><div class="tabs" id="lang" role="group" aria-label="Language"></div></header>
+<div class="wrap"><aside id="side"></aside><main id="main"></main><aside id="ai"><b>🤖 Study assistant</b><div id="log"><div class="m">Hi! I am your study assistant. Ask me about this lesson or your code.</div></div><div class="row"><button data-q="Explain this lesson in simple words" onclick="ask(this.dataset.q)">Explain this lesson</button><button data-q="Give me one short example for this lesson" onclick="ask(this.dataset.q)">Give me an example</button><button data-q="Check my code and tell me what to fix, without giving the full answer" onclick="ask(this.dataset.q)">Check my code</button></div><textarea id="q" aria-label="Ask the assistant"></textarea><button onclick="ask()">Send</button></aside></div>
 <script>
 const D={
 js:{name:'JavaScript',ls:[
@@ -86,21 +88,22 @@ function prog(){let tl=0,td=0,ts=0,rev=[],nx=[],c='';
 function loadCode(){try{const o=JSON.parse(atob($('pc').value.trim()));done=o.done||{};ST=Object.assign({seen:{},fail:{},sol:{},quiz:{}},o.ST);save();save2();render()}catch(e){$('pcm').textContent='That code is not valid.'}}
 function resetAll(b){if(b.dataset.s){done={};ST={seen:{},fail:{},sol:{},quiz:{}};save();save2();render()}else{b.dataset.s=1;b.textContent='Click again to confirm'}}
 function render(){
+ $('lang').innerHTML=[['en','English'],['tl','Tagalog'],['tg','Taglish']].map(([k,n])=>`<button class="${k===LG?'on':''}" onclick="setLang('${k}')">${n}</button>`).join('');
  $('tabs').innerHTML=Object.keys(D).map(k=>`<button class="${k===S?'on':''}" onclick="S='${k}';I=0;H=0;render()">${D[k].name}</button>`).join('');
  const ls=D[S].ls,n=ls.filter((_,i)=>done[S+i]).length;let lv='',h='';
  ls.forEach((l,i)=>{if(l.lv!==lv){lv=l.lv;h+=`<div class="lv">${lv}</div>`}h+=`<button class="${i===I?'on':''}" onclick="I=${i};H=0;render()">${done[S+i]?'✓ ':''}${l.t}</button>`});
  $('side').innerHTML=h+`<div class="lv">Test yourself</div><button class="${I==='p'?'on':''}" onclick="I='p';render()">📊 My progress</button><button class="${I==='q'?'on':''}" onclick="I='q';render()">★ Quick quiz</button><div class="bar"><i style="width:${n/ls.length*100}%"></i></div><div class="badge" style="margin:4px 6px">${n} of ${ls.length} done</div>`;
  if(I==='q')return quiz();if(I==='p')return prog();const l=ls[I];ST.seen[S+I]=1;save2();
- $('main').innerHTML=`<div class="badge">${D[S].name} · ${l.lv}</div><h2>${l.t}</h2><p>${l.b}</p><pre>${l.ex}</pre>
- <div class="task"><b>Your task:</b> ${l.task}</div>
+ $('main').innerHTML=`<div class="badge">${D[S].name} · ${l.lv}</div><h2 id="lt">${l.t}</h2><p id="lb">${l.b}</p><div class="badge" id="trs"></div><pre>${l.ex}</pre>
+ <div class="task"><b>Your task:</b> <span id="lts">${l.task}</span></div>
  <textarea id="code" spellcheck="false" aria-label="Code editor"></textarea>
  <div class="row"><button class="on" onclick="go()">${S==='js'||S==='html'?'Run &amp; check':'Check my answer'}</button><button onclick="hint()">Guide me</button><button onclick="$('code').value=D[S].ls[I].st;$('out').innerHTML=''">Reset</button>${I<ls.length-1?'<button onclick="I++;H=0;render()">Next lesson →</button>':''}</div>
  <div class="guide" id="guide"><b>Guide:</b> stuck? Press “Guide me” for one step at a time.</div><div class="res" id="out"></div>`;
- $('code').value=l.st;
+ $('code').value=l.st;applyTr(l);
  $('code').onkeydown=e=>{if(e.key==='Tab'){e.preventDefault();const t=e.target,p=t.selectionStart;t.setRangeText('  ',p,t.selectionEnd,'end')}};
 }
 function hint(){const l=D[S].ls[I];H=Math.min(H+1,l.h.length);$('guide').innerHTML='<b>Guide:</b>'+l.h.slice(0,H).map((x,i)=>`<p>${i+1}. <code></code></p>`).join('')+(H>=l.h.length?'<p><button onclick="sol()">Show solution</button></p>':'');
- [...$('guide').querySelectorAll('code')].forEach((c,i)=>c.textContent=l.h[i]);}
+ [...$('guide').querySelectorAll('code')].forEach((c,i)=>c.textContent=((CUR||{}).h||l.h)[i]);}
 async function go(){
  const l=D[S].ls[I],code=$('code').value;let res=[],extra='';
  l.c.forEach(([re,m])=>res.push([re.test(code),m]));
@@ -123,7 +126,34 @@ async function go(){
  if(S==='html')$('out').querySelector('iframe').srcdoc=code;
  if(pass){const ls=D[S].ls,n=ls.filter((_,i)=>done[S+i]).length;document.querySelector('.bar i').style.width=n/ls.length*100+'%';document.querySelector('aside .badge').textContent=n+' of '+ls.length+' done'}
 }
-render();
+let LG='en',CUR=null,TC={};try{LG=localStorage.getItem('lp-lang')||'en';TC=JSON.parse(localStorage.getItem('lp-tr')||'{}')}catch(e){}
+const UIT={'Learn & Practice':['Matuto at Magsanay','Learn at Practice'],'Your task:':['Gawain mo:','Task mo:'],'Run & check':['Patakbuhin at suriin','I-run at i-check'],'Check my answer':['Suriin ang sagot ko','I-check ang answer ko'],'Guide me':['Gabayan mo ako','Guide mo ako'],'Reset':['I-reset','I-reset'],'Next lesson →':['Susunod na aralin →','Next lesson →'],'Show solution':['Ipakita ang sagot','Show solution'],'Guide:':['Gabay:','Guide:'],'stuck? Press “Guide me” for one step at a time.':['nahihirapan? Pindutin ang “Gabayan mo ako” para sa isang hakbang bawat pindot.','stuck ka ba? I-press ang “Guide mo ako” para sa isang step at a time.'],'Lesson complete!':['Tapos na ang aralin!','Lesson complete na!'],'Not quite yet. Try “Guide me”.':['Hindi pa tama. Subukan ang “Gabayan mo ako”.','Hindi pa tama. Try mo ang “Guide mo ako”.'],'Output:':['Resulta:','Output:'],'Test yourself':['Subukan ang sarili','Test yourself'],'📊 My progress':['📊 Progreso ko','📊 My progress'],'★ Quick quiz':['★ Maikling quiz','★ Quick quiz'],'My progress':['Progreso ko','My progress'],'Quick quiz':['Maikling quiz','Quick quiz'],'Needs more practice':['Kailangan pang pagsanayan','Kailangan pa ng practice'],'Up next':['Susunod','Up next'],'Back up your progress':['I-back up ang progreso mo','I-back up ang progress mo'],'Load code':['I-load ang code','Load code'],'Reset progress':['I-reset ang progreso','I-reset ang progress'],'Saved automatically in this browser.':['Awtomatikong nase-save sa browser na ito.','Automatic na naka-save sa browser na ito.'],'Correct!':['Tama!','Tama!'],'Not quite. The right answer is highlighted.':['Hindi pa tama. Naka-highlight ang tamang sagot.','Hindi pa tama. Naka-highlight ang correct answer.'],'Basics':['Mga Batayan','Basics'],'Fundamentals':['Mga Pundasyon','Fundamentals'],'Advanced':['Mas Mataas na Antas','Advanced'],'🤖 Study assistant':['🤖 Katulong sa pag-aaral','🤖 Study assistant'],'Send':['Ipadala','Send'],'Explain this lesson':['Ipaliwanag ang aralin','Explain this lesson'],'Give me an example':['Bigyan ako ng halimbawa','Give me an example'],'Check my code':['Suriin ang code ko','Check my code'],'Hi! I am your study assistant. Ask me about this lesson or your code.':['Kumusta! Ako ang study assistant mo. Magtanong ka tungkol sa aralin o sa code mo.','Hi! Ako ang study assistant mo. Ask mo ako tungkol sa lesson o sa code mo.']};
+function ui(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode()){if(n.parentNode.tagName==='SCRIPT')continue;const s=n._o||n.nodeValue,k=s.trim(),e=UIT[k];if(e){if(!n._o)n._o=n.nodeValue;const v=LG==='en'?n._o:n._o.replace(k,e[LG==='tl'?0:1]);if(n.nodeValue!==v)n.nodeValue=v}}
+ $('q').placeholder={en:'Ask anything…',tl:'Magtanong ng kahit ano…',tg:'Ask mo kahit ano…'}[LG]}
+let qd=0;new MutationObserver(()=>{if(!qd){qd=1;requestAnimationFrame(()=>{qd=0;ui()})}}).observe(document.body,{childList:true,subtree:true});
+function setLang(k){LG=k;try{localStorage.setItem('lp-lang',k)}catch(e){}document.documentElement.lang=k==='en'?'en':'fil';render();ui()}
+const clean=s=>String(s).replace(/<(?!\/?code>)[^>]*>/gi,'');
+async function applyTr(l){CUR=null;if(LG==='en')return;const k=LG+S+I,st=$('trs');let r=TC[k];
+ if(!r){try{const sm=await claude.use('sample');if(!sm)return;st.textContent='Translating…';
+  const who=LG==='tl'?'natural, simple Filipino (Tagalog)':'Taglish (the natural Tagalog-English mix Filipinos speak; keep technical terms in English)';
+  r=await sm.json('Translate this beginner programming lesson into '+who+'. Keep HTML tags, entities like &lt; and anything inside <code> tags unchanged. Do not translate code. Return JSON only: {"t":title,"b":body,"task":task,"h":[hints]}.\n'+JSON.stringify({t:l.t,b:l.b,task:l.task,h:l.h}));
+  TC[k]=r;try{localStorage.setItem('lp-tr',JSON.stringify(TC))}catch(e){}}catch(e){if($('trs'))$('trs').textContent='Could not translate right now.';return}}
+ if(k!==LG+S+I||!$('lt'))return;if(!Array.isArray(r.h))delete r.h;CUR=r;$('trs').textContent='';$('lt').textContent=r.t;$('lb').innerHTML=clean(r.b);$('lts').innerHTML=clean(r.task)}
+const CHAT=[];
+async function ask(q){q=q||$('q').value.trim();if(!q)return;$('q').value='';
+ const log=$('log'),add=(c,t)=>{const d=document.createElement('div');d.className='m '+c;d.textContent=t;log.append(d);log.scrollTop=log.scrollHeight;return d};
+ add('u',q);const a=add('','…');
+ try{const sm=await claude.use('sample');if(!sm){a.textContent='The assistant is not available here.';return}
+  const l=(I!=='q'&&I!=='p')?D[S].ls[I]:null,lang={en:'English',tl:'Filipino (Tagalog)',tg:'Taglish (a natural mix of Tagalog and English)'}[LG];
+  const ctx='You are a friendly tutor inside a beginner coding lesson site. Reply in '+lang+'. Be brief (under 120 words), encouraging, and give hints before full answers unless asked. Subject: '+D[S].name+'. '+(l?'Lesson: '+l.t+'. '+(l.b+' Task: '+l.task).replace(/<[^>]+>/g,'')+' Learner code:\n'+($('code')?$('code').value:''):'No lesson is open.');
+  CHAT.push({role:'user',content:q});
+  const msgs=CHAT.slice(-7);while(msgs[0].role!=='user')msgs.shift();
+  const inp=msgs.map((m,i)=>i===msgs.length-1?{role:'user',content:ctx+'\n\nStudent question: '+m.content}:m);
+  const r=await sm(inp,{cache:false,modelTier:'quick',onText:({text})=>{a.textContent=text;log.scrollTop=log.scrollHeight}});
+  a.textContent=r.text;CHAT.push({role:'assistant',content:r.text})
+ }catch(e){if(CHAT.length&&CHAT[CHAT.length-1].role==='user')CHAT.pop();a.textContent=e&&e.code==='rate_limited'?'Too many questions. Please wait a moment.':'Sorry, I could not answer right now.'}}
+$('q').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ask()}};
+render();ui();
 </script>
 </body>
 </html>
